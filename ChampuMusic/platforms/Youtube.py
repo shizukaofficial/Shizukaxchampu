@@ -9,9 +9,9 @@ from pyrogram.enums import MessageEntityType
 from concurrent.futures import ThreadPoolExecutor
 from youtubesearchpython.__future__ import VideosSearch, CustomSearch
 
-from BrandrdXMusic import LOGGER
-from BrandrdXMusic.utils.database import is_on_off
-from BrandrdXMusic.utils.formatters import time_to_seconds
+from ChampuMusic import LOGGER
+from ChampuMusic.utils.database import is_on_off
+from ChampuMusic.utils.formatters import time_to_seconds
 
 #=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×[ NO NEED COOKIES ]=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×
 
