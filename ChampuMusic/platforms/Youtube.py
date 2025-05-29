@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from youtubesearchpython.__future__ import VideosSearch, CustomSearch
 
 from ChampuMusic import LOGGER
-from ChampuMusic.utils.database import is_on_off
+from BrandrdXMusic.utils.database import is_on_off
 from ChampuMusic.utils.formatters import time_to_seconds
 
 #=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×[ NO NEED COOKIES ]=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×
