@@ -1,73 +1,83 @@
-import asyncio
-import glob
-import os
-import random
-import re
+import asyncio, httpx, yt_dlp, os
+import glob, re, random, json, requests
+
 from typing import Union
-
-from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-from youtubesearchpython.__future__ import VideosSearch
-from yt_dlp import YoutubeDL
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+from pyrogram.enums import MessageEntityType
+from concurrent.futures import ThreadPoolExecutor
+from youtubesearchpython.__future__ import VideosSearch, CustomSearch
 
-import config
+from ChampuMusic import LOGGER
 from ChampuMusic.utils.database import is_on_off
 from ChampuMusic.utils.formatters import time_to_seconds
 
+#=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×[ NO NEED COOKIES ]=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×
 
-def cookie_text_file():
-    folder_path = f"{os.getcwd()}/cookies"
-    txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
-    if not txt_files:
-        raise FileNotFoundError("No .txt files found in the specified folder.")
-    cookie_txt_file = random.choice(txt_files)
-    return f"""cookies/{str(cookie_txt_file).split("/")[-1]}"""
+def cookie_txt_file():
+    try:
+        folder_path = f"{os.getcwd()}/cookies"
+        filename = f"{os.getcwd()}/cookies/logs.csv"
+        txt_files = glob.glob(os.path.join(folder_path, '*.txt'))
+        if not txt_files:
+            raise FileNotFoundError("No .txt files found in the specified folder.")
+        cookie_txt_file = random.choice(txt_files)
+        with open(filename, 'a') as file:
+            file.write(f'Choosen File : {cookie_txt_file}\n')
+        return f"""cookies/{str(cookie_txt_file).split("/")[-1]}"""
+    except:
+        pass
+        
+#=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×
+
+def time_to_seconds(time):
+    stringt = str(time)
+    return sum(int(x) * 60**i for i, x in enumerate(reversed(stringt.split(":"))))
 
 
-def cookies():
-    folder_path = f"{os.getcwd()}/cookies"
-    txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
-    if not txt_files:
-        raise FileNotFoundError("No .txt files found in the specified folder.")
-    cookie_txt_file = random.choice(txt_files)
-    return f"""cookies/{str(cookie_txt_file).split("/")[-1]}"""
+async def shell_cmd(cmd):
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    out, errorz = await proc.communicate()
+    if errorz:
+        if "unavailable videos are hidden" in (errorz.decode("utf-8")).lower():
+            return out.decode("utf-8")
+        else:
+            return errorz.decode("utf-8")
+    return out.decode("utf-8")
 
 
-def get_ytdl_options(ytdl_opts, commamdline=True) -> Union[str, dict, list]:
-    if commamdline:
-        if isinstance(ytdl_opts, list):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += ["--username", "oauth2", "--password", "''"]
-            else:
-                ytdl_opts += ["--cookies", cookies()]
-        elif isinstance(ytdl_opts, str):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += "--username oauth2 --password '' "
-            else:
-                ytdl_opts += f"--cookies {cookies()}"
-        elif isinstance(ytdl_opts, dict):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts.update({"username": "oauth2", "password": ""})
-            else:
-                ytdl_opts["cookiefile"] = cookies()
-    else:
-        if isinstance(ytdl_opts, list):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += ["username", "oauth2", "password", "''"]
-            else:
-                ytdl_opts += ["cookiefile", cookies()]
-        elif isinstance(ytdl_opts, str):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += "username oauth2 password '' "
-            else:
-                ytdl_opts += f"cookiefile {cookies()}"
-        elif isinstance(ytdl_opts, dict):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts.update({"username": "oauth2", "password": ""})
-            else:
-                ytdl_opts["cookiefile"] = cookies()
+async def get_stream_url(query, video=False):
+    apis = [
+        {
+            "url": "http://5.249.150.146:1470/youtube",
+            "key": "bd9206c4e3f64f009d35e194ac7b17d8"
+        },
+        {
+            "url": "http://5.249.150.55:1470/youtube",
+            "key": "SANATANIxTECH"
+        }
+    ]
 
-    return ytdl_opts
+    async with httpx.AsyncClient(timeout=60) as client:
+        for api in apis:
+            try:
+                params = {"query": query, "video": video, "api_key": api["key"]}
+                response = await client.get(api["url"], params=params)
+
+                if response.status_code == 200:
+                    info = response.json()
+                    stream_url = info.get("stream_url")
+                    if stream_url:
+                        return stream_url
+            except Exception:
+                continue
+
+    return ""
 
 
 async def shell_cmd(cmd):
